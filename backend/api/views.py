@@ -12,12 +12,12 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import (
     Product, RawMaterialPurchase, Production, Sale, SaleItem, Expense, 
-    ActivityLog, Notification
+    ActivityLog, Notification, Loan
 )
 from .serializers import (
     UserSerializer, ProductSerializer, RawMaterialPurchaseSerializer, 
     ProductionSerializer, SaleSerializer, ExpenseSerializer,
-    ActivityLogSerializer, NotificationSerializer
+    ActivityLogSerializer, NotificationSerializer, LoanSerializer
 )
 
 # Custom JWT Login View
@@ -510,3 +510,24 @@ def analytics_module(request):
         'financials': financials
     }
     return Response(data)
+
+
+# Loan ViewSet
+class LoanViewSet(viewsets.ModelViewSet):
+    queryset = Loan.objects.all()
+    serializer_class = LoanSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['company_name']
+    ordering_fields = ['loan_date', 'loan_amount', 'created_at']
+
+    def perform_create(self, serializer):
+        loan = serializer.save()
+        log_action(self.request.user, "Recorded Loan", f"Recorded new loan of Rs.{loan.loan_amount} from {loan.company_name}")
+
+    def perform_update(self, serializer):
+        loan = serializer.save()
+        log_action(self.request.user, "Updated Loan", f"Updated loan info for {loan.company_name} (Rs.{loan.loan_amount})")
+
+    def perform_destroy(self, instance):
+        log_action(self.request.user, "Deleted Loan", f"Deleted loan record of Rs.{instance.loan_amount} from {instance.company_name}")
+        instance.delete()

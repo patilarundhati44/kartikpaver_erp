@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Product, RawMaterialPurchase, Production, Sale, SaleItem, Expense, ActivityLog, Notification
+from .models import Product, RawMaterialPurchase, Production, Sale, SaleItem, Expense, ActivityLog, Notification, Loan
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -190,4 +190,10 @@ class ActivityLogSerializer(serializers.ModelSerializer):
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
+        fields = '__all__'
+
+
+class LoanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Loan
         fields = '__all__'

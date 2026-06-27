@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Product, RawMaterialPurchase, Production, Sale, SaleItem, Expense, 
-    ActivityLog, Notification
+    ActivityLog, Notification, Loan
 )
 
 @admin.register(Product)
@@ -57,3 +57,10 @@ class NotificationAdmin(admin.ModelAdmin):
     list_display = ('type', 'message', 'is_read', 'timestamp')
     list_filter = ('type', 'is_read', 'timestamp')
     search_fields = ('message',)
+
+
+@admin.register(Loan)
+class LoanAdmin(admin.ModelAdmin):
+    list_display = ('company_name', 'loan_amount', 'installment_amount', 'loan_date')
+    list_filter = ('loan_date', 'company_name')
+    search_fields = ('company_name',)

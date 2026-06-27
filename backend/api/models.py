@@ -207,3 +207,20 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"[{self.type}] {self.message[:50]}..."
+
+
+class Loan(models.Model):
+    """
+    Business loans taken from financial companies.
+    """
+    company_name = models.CharField(max_length=150, help_text="Company/Bank name")
+    loan_amount = models.DecimalField(max_digits=12, decimal_places=2, help_text="Total loan amount")
+    installment_amount = models.DecimalField(max_digits=12, decimal_places=2, help_text="Installment (Hafta) amount")
+    loan_date = models.DateField(help_text="Date when loan was taken")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-loan_date', '-created_at']
+
+    def __str__(self):
+        return f"Loan from {self.company_name} - Rs.{self.loan_amount}"

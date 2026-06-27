@@ -5,7 +5,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
     CustomTokenObtainPairView, UserViewSet, ProductViewSet, 
     RawMaterialPurchaseViewSet, ProductionViewSet, SalesViewSet, 
-    ExpenseViewSet, ActivityLogViewSet, NotificationViewSet,
+    ExpenseViewSet, ActivityLogViewSet, NotificationViewSet, LoanViewSet,
     dashboard_summary, reports_module, analytics_module
 )
 
@@ -18,6 +18,7 @@ router.register(r'sales', SalesViewSet, basename='sale')
 router.register(r'expenses', ExpenseViewSet, basename='expense')
 router.register(r'activities', ActivityLogViewSet, basename='activity')
 router.register(r'notifications', NotificationViewSet, basename='notification')
+router.register(r'loans', LoanViewSet, basename='loan')
 
 urlpatterns = [
     # Router paths
