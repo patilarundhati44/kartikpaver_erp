@@ -18,7 +18,7 @@ class ProductQuerySet(models.QuerySet):
         ).values('total')
 
         # Subquery for total sold
-        sales_sub = Sale.objects.filter(
+        sales_sub = SaleItem.objects.filter(
             product=OuterRef('pk')
         ).values('product').annotate(
             total=Sum('quantity')
@@ -66,7 +66,7 @@ class Product(models.Model):
     def current_stock_value(self):
         """Dynamic single-object stock calculation."""
         produced = Production.objects.filter(product=self).aggregate(total=Coalesce(Sum('quantity'), 0))['total']
-        sold = Sale.objects.filter(product=self).aggregate(total=Coalesce(Sum('quantity'), 0))['total']
+        sold = SaleItem.objects.filter(product=self).aggregate(total=Coalesce(Sum('quantity'), 0))['total']
         return produced - sold
 
     @property
@@ -112,11 +112,9 @@ class Production(models.Model):
 
 class Sale(models.Model):
     """
-    Sales records of finished products.
+    Sales records of finished products (represent invoice/bill).
     """
     sale_date = models.DateField()
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='sales')
-    quantity = models.IntegerField(help_text="Quantity sold")
     sale_amount = models.DecimalField(max_digits=12, decimal_places=2, help_text="Total revenue in INR")
     customer_name = models.CharField(max_length=150, blank=True, null=True)
     is_credit = models.BooleanField(default=False)
@@ -127,11 +125,26 @@ class Sale(models.Model):
         ordering = ['-sale_date', '-created_at']
 
     def __str__(self):
-        return f"Sold {self.quantity} x {self.product} for Rs.{self.sale_amount} on {self.sale_date}"
+        return f"Sale #{self.id} - Rs.{self.sale_amount} on {self.sale_date}"
 
     @property
     def due_amount(self):
         return self.sale_amount - self.amount_paid
+
+
+class SaleItem(models.Model):
+    """
+    Individual products sold under a Sale bill.
+    """
+    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='sale_items')
+    quantity = models.IntegerField(help_text="Quantity sold")
+    brass = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Quantity in brass")
+    rate = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Price per unit")
+    amount = models.DecimalField(max_digits=12, decimal_places=2, help_text="Total amount for this item")
+
+    def __str__(self):
+        return f"{self.quantity} x {self.product} in Sale #{self.sale.id}"
 
 
 class Expense(models.Model):

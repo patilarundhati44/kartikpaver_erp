@@ -11,7 +11,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import (
-    Product, RawMaterialPurchase, Production, Sale, Expense, 
+    Product, RawMaterialPurchase, Production, Sale, SaleItem, Expense, 
     ActivityLog, Notification
 )
 from .serializers import (
@@ -181,8 +181,8 @@ class SalesViewSet(viewsets.ModelViewSet):
     queryset = Sale.objects.all()
     serializer_class = SaleSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['product__name', 'product__color', 'product__category', 'customer_name']
-    ordering_fields = ['sale_date', 'quantity', 'sale_amount', 'created_at']
+    search_fields = ['items__product__name', 'items__product__color', 'items__product__category', 'customer_name']
+    ordering_fields = ['sale_date', 'sale_amount', 'created_at']
 
     def get_queryset(self):
         queryset = Sale.objects.all()
@@ -190,7 +190,7 @@ class SalesViewSet(viewsets.ModelViewSet):
         start_date = self.request.query_params.get('start_date')
         end_date = self.request.query_params.get('end_date')
         if product_id:
-            queryset = queryset.filter(product_id=product_id)
+            queryset = queryset.filter(items__product_id=product_id).distinct()
         if start_date:
             queryset = queryset.filter(sale_date__gte=start_date)
         if end_date:
@@ -199,16 +199,19 @@ class SalesViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         sale = serializer.save()
-        log_action(self.request.user, "Recorded Sale", f"Sold {sale.quantity} x {sale.product} to {sale.customer_name or 'Walk-in'} for Rs.{sale.sale_amount}")
+        items_desc = ", ".join([f"{item.quantity} x {item.product}" for item in sale.items.all()])
+        log_action(self.request.user, "Recorded Sale", f"Sold {items_desc} to {sale.customer_name or 'Walk-in'} for Rs.{sale.sale_amount}")
         check_stock_and_notify()
 
     def perform_update(self, serializer):
         sale = serializer.save()
-        log_action(self.request.user, "Updated Sale", f"Updated sale entry to {sale.quantity} x {sale.product} (Rs.{sale.sale_amount})")
+        items_desc = ", ".join([f"{item.quantity} x {item.product}" for item in sale.items.all()])
+        log_action(self.request.user, "Updated Sale", f"Updated sale entry to {items_desc} (Rs.{sale.sale_amount})")
         check_stock_and_notify()
 
     def perform_destroy(self, instance):
-        log_action(self.request.user, "Deleted Sale", f"Deleted sale of {instance.quantity} x {instance.product} on {instance.sale_date}")
+        items_desc = ", ".join([f"{item.quantity} x {item.product}" for item in instance.items.all()])
+        log_action(self.request.user, "Deleted Sale", f"Deleted sale of {items_desc} on {instance.sale_date}")
         instance.delete()
         check_stock_and_notify()
 
@@ -303,14 +306,14 @@ def dashboard_summary(request):
 
     # 2. Today's stats
     today_prod = Production.objects.filter(production_date=today).aggregate(total=Sum('quantity'))['total'] or 0
-    today_sales_qty = Sale.objects.filter(sale_date=today).aggregate(total=Sum('quantity'))['total'] or 0
+    today_sales_qty = SaleItem.objects.filter(sale__sale_date=today).aggregate(total=Sum('quantity'))['total'] or 0
     today_sales_amt = Sale.objects.filter(sale_date=today).aggregate(total=Sum('sale_amount'))['total'] or 0.0
     today_purchases = RawMaterialPurchase.objects.filter(purchase_date=today).aggregate(total=Sum('purchase_amount'))['total'] or 0.0
     today_expenses = Expense.objects.filter(expense_date=today).aggregate(total=Sum('amount'))['total'] or 0.0
 
     # 3. Monthly stats
     monthly_prod = Production.objects.filter(production_date__gte=first_of_month, production_date__lte=today).aggregate(total=Sum('quantity'))['total'] or 0
-    monthly_sales_qty = Sale.objects.filter(sale_date__gte=first_of_month, sale_date__lte=today).aggregate(total=Sum('quantity'))['total'] or 0
+    monthly_sales_qty = SaleItem.objects.filter(sale__sale_date__gte=first_of_month, sale__sale_date__lte=today).aggregate(total=Sum('quantity'))['total'] or 0
     monthly_sales_amt = Sale.objects.filter(sale_date__gte=first_of_month, sale_date__lte=today).aggregate(total=Sum('sale_amount'))['total'] or 0.0
     monthly_purchases = RawMaterialPurchase.objects.filter(purchase_date__gte=first_of_month, purchase_date__lte=today).aggregate(total=Sum('purchase_amount'))['total'] or 0.0
     monthly_expenses = Expense.objects.filter(expense_date__gte=first_of_month, expense_date__lte=today).aggregate(total=Sum('amount'))['total'] or 0.0
@@ -381,7 +384,7 @@ def reports_module(request):
 
     # Query aggregates for specific period
     period_prod = Production.objects.filter(production_date__gte=start_date, production_date__lte=end_date).aggregate(total=Coalesce(Sum('quantity'), 0))['total']
-    period_sales_qty = Sale.objects.filter(sale_date__gte=start_date, sale_date__lte=end_date).aggregate(total=Coalesce(Sum('quantity'), 0))['total']
+    period_sales_qty = SaleItem.objects.filter(sale__sale_date__gte=start_date, sale__sale_date__lte=end_date).aggregate(total=Coalesce(Sum('quantity'), 0))['total']
     period_sales_amt = Sale.objects.filter(sale_date__gte=start_date, sale_date__lte=end_date).aggregate(total=Coalesce(Sum('sale_amount'), 0.0))['total']
     period_purchases_amt = RawMaterialPurchase.objects.filter(purchase_date__gte=start_date, purchase_date__lte=end_date).aggregate(total=Coalesce(Sum('purchase_amount'), 0.0))['total']
     period_expenses_amt = Expense.objects.filter(expense_date__gte=start_date, expense_date__lte=end_date).aggregate(total=Coalesce(Sum('amount'), 0.0))['total']
@@ -390,7 +393,7 @@ def reports_module(request):
 
     # Current Stock status at end date (approx: total productions up to end_date - total sales up to end_date)
     prod_up_to_end = Production.objects.filter(production_date__lte=end_date).aggregate(total=Coalesce(Sum('quantity'), 0))['total']
-    sales_up_to_end = Sale.objects.filter(sale_date__lte=end_date).aggregate(total=Coalesce(Sum('quantity'), 0))['total']
+    sales_up_to_end = SaleItem.objects.filter(sale__sale_date__lte=end_date).aggregate(total=Coalesce(Sum('quantity'), 0))['total']
     stock_at_end_date = prod_up_to_end - sales_up_to_end
 
     # Fetch detailed logs for export/view
@@ -442,12 +445,18 @@ def analytics_module(request):
             trends_map[d_str]['production'] = entry['qty']
 
     # Populate sales quantities & amounts (for trend mapping, we plot amounts here)
-    sales_data = Sale.objects.filter(sale_date__gte=start_date, sale_date__lte=end_date).values('sale_date').annotate(qty=Sum('quantity'), amt=Sum('sale_amount'))
-    for entry in sales_data:
+    sales_amt_data = Sale.objects.filter(sale_date__gte=start_date, sale_date__lte=end_date).values('sale_date').annotate(amt=Sum('sale_amount'))
+    sales_qty_data = SaleItem.objects.filter(sale__sale_date__gte=start_date, sale__sale_date__lte=end_date).values('sale__sale_date').annotate(qty=Sum('quantity'))
+    
+    for entry in sales_amt_data:
         d_str = entry['sale_date'].strftime('%Y-%m-%d')
         if d_str in trends_map:
-            trends_map[d_str]['sales_qty'] = entry['qty']
             trends_map[d_str]['sales'] = float(entry['amt'])
+            
+    for entry in sales_qty_data:
+        d_str = entry['sale__sale_date'].strftime('%Y-%m-%d')
+        if d_str in trends_map:
+            trends_map[d_str]['sales_qty'] = entry['qty']
 
     # Populate purchases amounts
     purch_data = RawMaterialPurchase.objects.filter(purchase_date__gte=start_date, purchase_date__lte=end_date).values('purchase_date').annotate(amt=Sum('purchase_amount'))
@@ -474,7 +483,7 @@ def analytics_module(request):
 
     # 4. Category Sales shares
     category_shares = list(
-        Sale.objects.annotate(category=F('product__category')).values('category').annotate(value=Sum('sale_amount')).order_by('-value')
+        SaleItem.objects.annotate(category=F('product__category')).values('category').annotate(value=Sum('amount')).order_by('-value')
     )
     for item in category_shares:
         item['value'] = float(item['value'])

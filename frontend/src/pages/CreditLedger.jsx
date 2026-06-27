@@ -27,7 +27,7 @@ const CreditLedger = () => {
 
   const fetchSales = async () => {
     try {
-      // Fetch all sales, filter to show only credit transactions
+      // Fetch all sales, filter to show only credit transactions (where is_credit is true)
       const res = await api.get('sales/');
       const allSales = res.data.results || res.data || [];
       const creditSales = allSales.filter(s => s.is_credit === true);
@@ -73,6 +73,7 @@ const CreditLedger = () => {
     const newAmountPaid = parseFloat(selectedSale.amount_paid) + collectAmt;
 
     try {
+      // Collect payment updates amount_paid. The backend automatically adjusts is_credit.
       await api.patch(`sales/${selectedSale.id}/`, {
         amount_paid: newAmountPaid
       });
@@ -93,8 +94,10 @@ const CreditLedger = () => {
   const filteredSales = sales.filter(s => {
     const matchesSearch = 
       (s.customer_name && s.customer_name.toLowerCase().includes(search.toLowerCase())) ||
-      s.product_name.toLowerCase().includes(search.toLowerCase()) ||
-      s.product_color.toLowerCase().includes(search.toLowerCase());
+      s.items?.some(item => 
+        item.product_name.toLowerCase().includes(search.toLowerCase()) || 
+        item.product_color.toLowerCase().includes(search.toLowerCase())
+      );
       
     const due = parseFloat(s.due_amount);
     
@@ -209,7 +212,7 @@ const CreditLedger = () => {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search customer or product..."
+                placeholder="Search customer or item..."
                 className="bg-transparent border-none outline-none text-xs text-slate-100 w-full placeholder-slate-700"
               />
             </div>
@@ -265,7 +268,8 @@ const CreditLedger = () => {
                     <tr className="border-b border-slate-800 text-[10px] uppercase font-bold text-slate-400 font-mono tracking-widest bg-slate-950/20">
                       <th className="py-4 px-6">Date</th>
                       <th className="py-4 px-6">Customer Name</th>
-                      <th className="py-4 px-6">Product Details</th>
+                      <th className="py-4 px-6">Items Dispatch List</th>
+                      <th className="py-4 px-6 text-right">Total Brass</th>
                       <th className="py-4 px-6 text-right">Total Bill</th>
                       <th className="py-4 px-6 text-right">Paid So Far</th>
                       <th className="py-4 px-6 text-right text-red-400">Due Amount</th>
@@ -282,14 +286,24 @@ const CreditLedger = () => {
                           <td className="py-4 px-6 font-semibold text-slate-400 font-mono">
                             {formatDateToDisplay(s.sale_date)}
                           </td>
-                          <td className="py-4 px-6 font-bold text-slate-200 text-sm">
+                          <td className="py-4 px-6 font-bold text-slate-200">
                             {s.customer_name || <span className="text-slate-600 italic">Walk-in</span>}
                           </td>
                           <td className="py-4 px-6">
-                            <span className="font-semibold text-slate-300">{s.quantity.toLocaleString()} pcs</span>
-                            <span className="text-slate-500 text-[10px] ml-1">({s.product_color} {s.product_name})</span>
+                            <div className="space-y-1 py-0.5">
+                              {s.items && s.items.map((item, idx) => (
+                                <div key={idx} className="flex items-center space-x-1.5 text-slate-300 text-xs">
+                                  <span className="font-bold text-slate-200">{item.quantity.toLocaleString()}</span>
+                                  <span className="text-slate-500">pcs</span>
+                                  <span className="text-slate-400">{item.product_color} {item.product_name}</span>
+                                </div>
+                              ))}
+                            </div>
                           </td>
-                          <td className="py-4 px-6 text-right font-bold font-mono">
+                          <td className="py-4 px-6 text-right font-semibold font-mono text-slate-400">
+                            {parseFloat(s.total_brass) > 0 ? `${s.total_brass} Br` : '-'}
+                          </td>
+                          <td className="py-4 px-6 text-right font-bold font-mono text-slate-200">
                             {formatCurrency(s.sale_amount)}
                           </td>
                           <td className="py-4 px-6 text-right font-bold text-green-400 font-mono">

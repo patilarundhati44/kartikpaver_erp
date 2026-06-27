@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    Product, RawMaterialPurchase, Production, Sale, Expense, 
+    Product, RawMaterialPurchase, Production, Sale, SaleItem, Expense, 
     ActivityLog, Notification
 )
 
@@ -25,11 +25,17 @@ class ProductionAdmin(admin.ModelAdmin):
     search_fields = ('product__name', 'product__color')
 
 
+class SaleItemInline(admin.TabularInline):
+    model = SaleItem
+    extra = 1
+
+
 @admin.register(Sale)
 class SaleAdmin(admin.ModelAdmin):
-    list_display = ('product', 'sale_date', 'quantity', 'sale_amount', 'customer_name')
-    list_filter = ('sale_date', 'product')
-    search_fields = ('product__name', 'product__color', 'customer_name')
+    list_display = ('id', 'sale_date', 'sale_amount', 'customer_name', 'amount_paid', 'due_amount')
+    list_filter = ('sale_date', 'is_credit')
+    search_fields = ('customer_name',)
+    inlines = [SaleItemInline]
 
 
 @admin.register(Expense)

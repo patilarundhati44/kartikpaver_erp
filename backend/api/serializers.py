@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Product, RawMaterialPurchase, Production, Sale, Expense, ActivityLog, Notification
+from .models import Product, RawMaterialPurchase, Production, Sale, SaleItem, Expense, ActivityLog, Notification
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -47,25 +47,44 @@ class ProductionSerializer(serializers.ModelSerializer):
         return value
 
 
-class SaleSerializer(serializers.ModelSerializer):
+class SaleItemSerializer(serializers.ModelSerializer):
     product_name = serializers.ReadOnlyField(source='product.name')
     product_color = serializers.ReadOnlyField(source='product.color')
     product_category = serializers.ReadOnlyField(source='product.category')
-    due_amount = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
     class Meta:
-        model = Sale
+        model = SaleItem
         fields = [
-            'id', 'sale_date', 'product', 'product_name', 
-            'product_color', 'product_category', 'quantity', 
-            'sale_amount', 'customer_name', 'is_credit', 
-            'amount_paid', 'due_amount', 'created_at'
+            'id', 'product', 'product_name', 'product_color', 
+            'product_category', 'quantity', 'brass', 'rate', 'amount'
         ]
 
     def validate_quantity(self, value):
         if value <= 0:
             raise serializers.ValidationError("Quantity sold must be greater than zero.")
         return value
+
+    def validate_amount(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Amount cannot be negative.")
+        return value
+
+
+class SaleSerializer(serializers.ModelSerializer):
+    items = SaleItemSerializer(many=True)
+    due_amount = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    total_brass = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Sale
+        fields = [
+            'id', 'sale_date', 'sale_amount', 'customer_name', 
+            'is_credit', 'amount_paid', 'due_amount', 'created_at',
+            'items', 'total_brass'
+        ]
+
+    def get_total_brass(self, obj):
+        return sum(item.brass for item in obj.items.all())
 
     def validate_sale_amount(self, value):
         if value < 0:
@@ -82,39 +101,71 @@ class SaleSerializer(serializers.ModelSerializer):
         Validate that we don't sell more than the available stock.
         Also check that amount_paid does not exceed total sale_amount.
         """
-        product = data.get('product')
-        quantity = data.get('quantity')
+        items_data = data.get('items', [])
         sale_amount = data.get('sale_amount')
-        amount_paid = data.get('amount_paid')
-        
-        # If updating, get values from instance if not provided in payload
-        if self.instance:
-            product = product or self.instance.product
-            quantity = quantity if quantity is not None else self.instance.quantity
-            sale_amount = sale_amount if sale_amount is not None else self.instance.sale_amount
-            amount_paid = amount_paid if amount_paid is not None else self.instance.amount_paid
-        else:
-            if amount_paid is None:
-                amount_paid = 0
+        amount_paid = data.get('amount_paid', 0)
 
+        # Basic amount paid check
         if sale_amount is not None and amount_paid > sale_amount:
             raise serializers.ValidationError({
                 "amount_paid": "Amount paid cannot be greater than the total sale amount."
             })
-        
-        # If updating, get the original sale quantity to calculate net change
-        orig_qty = 0
-        if self.instance:
-            orig_qty = self.instance.quantity
-            
-        current_stock = product.current_stock_value + orig_qty
-        
-        if quantity is not None and quantity > current_stock:
+
+        if not items_data and not self.instance:
             raise serializers.ValidationError({
-                "quantity": f"Insufficient stock! Available stock for {product} is only {current_stock} units. You entered {quantity}."
+                "items": "A sale must contain at least one item."
             })
-            
+
+        # Stock validation grouping by product
+        product_quantities = {}
+        for item in items_data:
+            prod = item.get('product')
+            qty = item.get('quantity')
+            product_quantities[prod] = product_quantities.get(prod, 0) + qty
+
+        for prod, qty in product_quantities.items():
+            orig_qty = 0
+            if self.instance:
+                orig_qty = sum(item.quantity for item in self.instance.items.filter(product=prod))
+
+            current_stock = prod.current_stock_value + orig_qty
+            if qty > current_stock:
+                raise serializers.ValidationError({
+                    "items": f"Insufficient stock! Available stock for {prod} is only {current_stock} units. You entered {qty}."
+                })
+
         return data
+
+    def create(self, validated_data):
+        items_data = validated_data.pop('items')
+        
+        # Determine is_credit automatically
+        sale_amount = validated_data.get('sale_amount')
+        amount_paid = validated_data.get('amount_paid', 0)
+        validated_data['is_credit'] = amount_paid < sale_amount
+
+        sale = Sale.objects.create(**validated_data)
+        for item_data in items_data:
+            SaleItem.objects.create(sale=sale, **item_data)
+        return sale
+
+    def update(self, instance, validated_data):
+        items_data = validated_data.pop('items', None)
+
+        instance.sale_date = validated_data.get('sale_date', instance.sale_date)
+        instance.sale_amount = validated_data.get('sale_amount', instance.sale_amount)
+        instance.customer_name = validated_data.get('customer_name', instance.customer_name)
+        instance.amount_paid = validated_data.get('amount_paid', instance.amount_paid)
+
+        instance.is_credit = instance.amount_paid < instance.sale_amount
+        instance.save()
+
+        if items_data is not None:
+            instance.items.all().delete()
+            for item_data in items_data:
+                SaleItem.objects.create(sale=instance, **item_data)
+
+        return instance
 
 
 class ExpenseSerializer(serializers.ModelSerializer):
