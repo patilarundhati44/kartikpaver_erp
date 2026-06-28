@@ -142,6 +142,7 @@ class SaleItem(models.Model):
     brass = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Quantity in brass")
     rate = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Price per unit")
     amount = models.DecimalField(max_digits=12, decimal_places=2, help_text="Total amount for this item")
+    vehicle_no = models.CharField(max_length=50, blank=True, null=True, help_text="Vehicle / Truck number for dispatch")
 
     def __str__(self):
         return f"{self.quantity} x {self.product} in Sale #{self.sale.id}"

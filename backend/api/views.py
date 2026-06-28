@@ -148,7 +148,7 @@ class ProductionViewSet(viewsets.ModelViewSet):
     ordering_fields = ['production_date', 'quantity', 'created_at']
 
     def get_queryset(self):
-        queryset = Production.objects.all()
+        queryset = Production.objects.all().select_related('product')
         product_id = self.request.query_params.get('product')
         start_date = self.request.query_params.get('start_date')
         end_date = self.request.query_params.get('end_date')
@@ -185,7 +185,7 @@ class SalesViewSet(viewsets.ModelViewSet):
     ordering_fields = ['sale_date', 'sale_amount', 'created_at']
 
     def get_queryset(self):
-        queryset = Sale.objects.all()
+        queryset = Sale.objects.all().prefetch_related('items__product')
         product_id = self.request.query_params.get('product')
         start_date = self.request.query_params.get('start_date')
         end_date = self.request.query_params.get('end_date')
@@ -252,7 +252,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
 
 # Activity Log ViewSet (Read-Only)
 class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = ActivityLog.objects.all()
+    queryset = ActivityLog.objects.all().select_related('user')
     serializer_class = ActivityLogSerializer
 
 
@@ -328,7 +328,7 @@ def dashboard_summary(request):
     estimated_profit_month = float(monthly_sales_amt) - (float(monthly_purchases) + float(monthly_expenses))
 
     # 5. Feeds
-    recent_activities = ActivityLogSerializer(ActivityLog.objects.all()[:10], many=True).data
+    recent_activities = ActivityLogSerializer(ActivityLog.objects.all().select_related('user')[:10], many=True).data
     unread_notifications = NotificationSerializer(Notification.objects.filter(is_read=False)[:10], many=True).data
 
     data = {
@@ -397,8 +397,8 @@ def reports_module(request):
     stock_at_end_date = prod_up_to_end - sales_up_to_end
 
     # Fetch detailed logs for export/view
-    production_records = ProductionSerializer(Production.objects.filter(production_date__gte=start_date, production_date__lte=end_date), many=True).data
-    sales_records = SaleSerializer(Sale.objects.filter(sale_date__gte=start_date, sale_date__lte=end_date), many=True).data
+    production_records = ProductionSerializer(Production.objects.filter(production_date__gte=start_date, production_date__lte=end_date).select_related('product'), many=True).data
+    sales_records = SaleSerializer(Sale.objects.filter(sale_date__gte=start_date, sale_date__lte=end_date).prefetch_related('items__product'), many=True).data
     purchase_records = RawMaterialPurchaseSerializer(RawMaterialPurchase.objects.filter(purchase_date__gte=start_date, purchase_date__lte=end_date), many=True).data
     expense_records = ExpenseSerializer(Expense.objects.filter(expense_date__gte=start_date, expense_date__lte=end_date), many=True).data
 

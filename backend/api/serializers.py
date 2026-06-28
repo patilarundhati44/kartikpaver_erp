@@ -56,7 +56,7 @@ class SaleItemSerializer(serializers.ModelSerializer):
         model = SaleItem
         fields = [
             'id', 'product', 'product_name', 'product_color', 
-            'product_category', 'quantity', 'brass', 'rate', 'amount'
+            'product_category', 'quantity', 'brass', 'rate', 'amount', 'vehicle_no'
         ]
 
     def validate_quantity(self, value):

@@ -73,6 +73,8 @@ const Sales = () => {
   const [builderRate, setBuilderRate] = useState('');
   const [builderAmount, setBuilderAmount] = useState('');
   const [builderProductStock, setBuilderProductStock] = useState(0);
+  const [builderRateBasis, setBuilderRateBasis] = useState('brass'); // 'brass' or 'pc'
+  const [builderVehicleNo, setBuilderVehicleNo] = useState('');
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -155,10 +157,9 @@ const Sales = () => {
       if (modalType === 'edit' && editingId) {
         const originalSale = sales.find(s => s.id === editingId);
         if (originalSale && originalSale.items) {
-          const origItem = originalSale.items.find(item => item.product === matchedProduct.id);
-          if (origItem) {
-            originalQty = origItem.quantity;
-          }
+          originalQty = originalSale.items
+            .filter(item => item.product === matchedProduct.id)
+            .reduce((sum, item) => sum + (parseInt(item.quantity) || 0), 0);
         }
       }
 
@@ -169,22 +170,29 @@ const Sales = () => {
     }
   }, [builderProductInput, products, saleItems, modalType, editingId, sales]);
 
-  // Auto calculate item amount based on Builder Quantity and Rate
+  // Auto calculate item amount based on Builder Quantity/Brass and Rate
   useEffect(() => {
     const qty = parseInt(builderQuantity) || 0;
+    const brass = parseFloat(builderBrass) || 0;
     const rate = parseFloat(builderRate) || 0;
-    if (qty > 0 && rate > 0) {
-      setBuilderAmount((qty * rate).toFixed(2));
+    if (builderRateBasis === 'pc') {
+      if (qty > 0 && rate > 0) {
+        setBuilderAmount((qty * rate).toFixed(2));
+      }
+    } else {
+      if (brass > 0 && rate > 0) {
+        setBuilderAmount((brass * rate).toFixed(2));
+      }
     }
-  }, [builderQuantity, builderRate]);
+  }, [builderQuantity, builderBrass, builderRate, builderRateBasis]);
 
   // Add Item to the current sale list
   const handleAddItem = () => {
     setError('');
     const qty = parseInt(builderQuantity);
     const rate = parseFloat(builderRate) || 0;
-    const amt = parseFloat(builderAmount) || (qty * rate);
     const brassVal = parseFloat(builderBrass) || 0.0;
+    const amt = parseFloat(builderAmount) || (builderRateBasis === 'pc' ? qty * rate : brassVal * rate);
 
     const matchedProduct = products.find(
       p => `${p.color} ${p.name}`.toLowerCase() === builderProductInput.trim().toLowerCase()
@@ -205,27 +213,19 @@ const Sales = () => {
       return;
     }
 
-    // Check if product color/name combination already exists in local list, if so combine them
-    const existingIndex = saleItems.findIndex(item => item.product === matchedProduct.id);
-    if (existingIndex > -1) {
-      const updatedItems = [...saleItems];
-      updatedItems[existingIndex].quantity += qty;
-      updatedItems[existingIndex].brass += brassVal;
-      updatedItems[existingIndex].amount += amt;
-      setSaleItems(updatedItems);
-    } else {
-      const newItem = {
-        product: matchedProduct.id,
-        product_name: matchedProduct.name,
-        product_color: matchedProduct.color,
-        product_category: matchedProduct.category,
-        quantity: qty,
-        brass: brassVal,
-        rate: rate,
-        amount: amt
-      };
-      setSaleItems([...saleItems, newItem]);
-    }
+    // Add item directly to support separate vehicle dispatches of the same product
+    const newItem = {
+      product: matchedProduct.id,
+      product_name: matchedProduct.name,
+      product_color: matchedProduct.color,
+      product_category: matchedProduct.category,
+      quantity: qty,
+      brass: brassVal,
+      rate: rate,
+      amount: amt,
+      vehicle_no: builderVehicleNo.trim()
+    };
+    setSaleItems([...saleItems, newItem]);
 
     // Reset Builder
     setBuilderProductInput('');
@@ -233,6 +233,7 @@ const Sales = () => {
     setBuilderBrass('');
     setBuilderRate('');
     setBuilderAmount('');
+    setBuilderVehicleNo('');
   };
 
   // Remove Item from list
@@ -256,6 +257,8 @@ const Sales = () => {
     setBuilderBrass('');
     setBuilderRate('');
     setBuilderAmount('');
+    setBuilderRateBasis('brass');
+    setBuilderVehicleNo('');
     
     setError('');
     setSuccess('');
@@ -268,7 +271,16 @@ const Sales = () => {
     setSaleDateDisplay(formatDateToDisplay(entry.sale_date));
     setCustomer(entry.customer_name || '');
     setAmountPaid(entry.amount_paid || '');
-    setSaleItems(entry.items || []);
+    
+    // Map items and parse decimals/integers to JS numbers to avoid string concatenation issues
+    setSaleItems((entry.items || []).map(item => ({
+      ...item,
+      quantity: parseInt(item.quantity) || 0,
+      brass: parseFloat(item.brass) || 0.0,
+      rate: parseFloat(item.rate) || 0.0,
+      amount: parseFloat(item.amount) || 0.0,
+      vehicle_no: item.vehicle_no || ''
+    })));
     
     // Reset builder
     setBuilderProductInput('');
@@ -276,6 +288,8 @@ const Sales = () => {
     setBuilderBrass('');
     setBuilderRate('');
     setBuilderAmount('');
+    setBuilderRateBasis('brass');
+    setBuilderVehicleNo('');
 
     setError('');
     setSuccess('');
@@ -323,7 +337,8 @@ const Sales = () => {
         quantity: item.quantity,
         brass: item.brass,
         rate: item.rate,
-        amount: item.amount
+        amount: item.amount,
+        vehicle_no: item.vehicle_no || ''
       }))
     };
 
@@ -521,6 +536,11 @@ const Sales = () => {
                                 {item.brass} Brass
                               </span>
                             )}
+                            {item.vehicle_no && (
+                              <span className="text-[9px] bg-slate-800 border border-slate-700 text-slate-300 px-1 py-0.5 rounded font-mono">
+                                Gadi: {item.vehicle_no}
+                              </span>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -665,25 +685,56 @@ const Sales = () => {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 font-mono">
-                      Rate / pc (₹)
-                    </label>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">
+                        Rate (₹)
+                      </label>
+                      <div className="flex bg-slate-950 p-0.5 border border-slate-800 rounded-lg scale-90 origin-right">
+                        <button
+                          type="button"
+                          onClick={() => setBuilderRateBasis('pc')}
+                          className={`px-1 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider transition-all ${builderRateBasis === 'pc' ? 'bg-orange-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                        >
+                          / Pc
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBuilderRateBasis('brass')}
+                          className={`px-1 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider transition-all ${builderRateBasis === 'brass' ? 'bg-orange-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                        >
+                          / Br
+                        </button>
+                      </div>
+                    </div>
                     <input
                       type="number"
                       step="0.01"
                       value={builderRate}
                       onChange={(e) => setBuilderRate(e.target.value)}
-                      placeholder="Rate"
+                      placeholder={builderRateBasis === 'pc' ? "Rate per pc" : "Rate per brass"}
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-orange-500 font-mono"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 items-center">
-                  <div className="sm:col-span-3 text-[10px] text-slate-500 font-mono">
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 items-end">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 font-mono">
+                      Vehicle No. / Note
+                    </label>
+                    <input
+                      type="text"
+                      value={builderVehicleNo}
+                      onChange={(e) => setBuilderVehicleNo(e.target.value)}
+                      placeholder="e.g. MH-12-AB-1234"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-orange-500 font-mono"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2 text-[10px] text-slate-500 font-mono">
                     {builderProductInput && (
-                      <span className="bg-slate-950 px-2.5 py-1 rounded border border-slate-800 flex items-center justify-between">
-                        <span>Available Stock for Dispatch:</span>
+                      <span className="bg-slate-950 px-2.5 py-2 rounded-xl border border-slate-800 flex items-center justify-between h-9">
+                        <span>Available Stock:</span>
                         <span className={`font-black ${builderProductStock <= 0 ? 'text-red-500 animate-pulse' : 'text-green-500'}`}>
                           {builderProductStock.toLocaleString()} units
                         </span>
@@ -708,7 +759,7 @@ const Sales = () => {
                   <button
                     type="button"
                     onClick={handleAddItem}
-                    className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold py-2 px-4 rounded-xl text-xs transition-all border border-slate-700/80 flex items-center justify-center space-x-1"
+                    className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-all border border-slate-700/80 flex items-center justify-center space-x-1 h-9"
                   >
                     <PlusCircle size={14} />
                     <span>Add Item</span>
@@ -743,9 +794,16 @@ const Sales = () => {
                         {saleItems.map((item, index) => (
                           <tr key={index} className="hover:bg-slate-950/30">
                             <td className="py-2.5 px-4">
-                              <div className="flex items-center space-x-1.5">
-                                <span className="font-black text-slate-300">{item.product_color}</span>
-                                <span className="text-slate-400">{item.product_name}</span>
+                              <div className="flex flex-col">
+                                <div className="flex items-center space-x-1.5">
+                                  <span className="font-black text-slate-300">{item.product_color}</span>
+                                  <span className="text-slate-400">{item.product_name}</span>
+                                </div>
+                                {item.vehicle_no && (
+                                  <span className="text-[9px] text-orange-400 font-mono mt-0.5">
+                                    Gadi: {item.vehicle_no}
+                                  </span>
+                                )}
                               </div>
                             </td>
                             <td className="py-2.5 px-4 text-right font-mono font-bold text-slate-300">

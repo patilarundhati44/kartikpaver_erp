@@ -445,8 +445,18 @@ const CreditLedger = () => {
                                   {s.items && s.items.map((item, idx) => (
                                     <div key={idx} className="flex items-center space-x-1.5 text-slate-300 text-xs">
                                       <span className="font-bold text-slate-200">{item.quantity.toLocaleString()}</span>
-                                      <span className="text-slate-500">pcs</span>
-                                      <span className="text-slate-400">{item.product_color} {item.product_name}</span>
+                                      <span className="text-slate-500 font-normal">pcs</span>
+                                      <span className="text-slate-400 font-medium">{item.product_color} {item.product_name}</span>
+                                      {parseFloat(item.brass) > 0 && (
+                                        <span className="text-[9px] bg-orange-950/40 border border-orange-500/25 text-orange-400 px-1 py-0.5 rounded font-mono">
+                                          {item.brass} Brass
+                                        </span>
+                                      )}
+                                      {item.vehicle_no && (
+                                        <span className="text-[9px] bg-slate-800 border border-slate-700 text-slate-300 px-1 py-0.5 rounded font-mono">
+                                          Gadi: {item.vehicle_no}
+                                        </span>
+                                      )}
                                     </div>
                                   ))}
                                 </div>

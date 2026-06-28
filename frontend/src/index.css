@@ -81,3 +81,114 @@
     page-break-inside: avoid !important;
   }
 }
+
+/* ==========================================================================
+   HIGH CONTRAST & READABILITY OVERRIDES
+   Tailored for low-brightness/glare factory office monitors.
+   ========================================================================== */
+
+/* True pitch black background for extreme contrast and reflection reduction */
+body {
+  background-color: #020617 !important; 
+  color: #f3f4f6 !important;
+}
+
+/* Solid high-contrast card and modal panels */
+.glass-panel,
+div.bg-slate-900,
+div.bg-slate-900\/60,
+div.bg-slate-950\/40,
+aside.bg-slate-900 {
+  background-color: #0f172a !important; /* Solid dark slate background */
+  border-color: #475569 !important; /* Highly visible border (slate-600) */
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+}
+
+/* Cards readability */
+.glass-card,
+div.bg-slate-900\/40 {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+/* Solid input styling with bright borders and clear text size */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="password"],
+input[type="email"],
+select,
+textarea {
+  background-color: #020617 !important; /* Very dark input */
+  border-color: #4b5563 !important; /* Solid grey border */
+  color: #ffffff !important; /* Bright white text */
+  font-size: 0.875rem !important; /* text-sm (14px) */
+  font-weight: 600 !important; /* Bolder text */
+  min-height: 2.5rem !important; /* Clear touch target and size */
+}
+
+/* Adjust placeholder color */
+input::placeholder {
+  color: #9ca3af !important; /* Brighter gray placeholder */
+}
+
+/* Focus states */
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #f97316 !important; /* Orange */
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.3) !important;
+}
+
+/* Elevate contrast of gray text/labels to eliminate eye strain */
+label,
+.text-slate-500,
+.text-slate-400 {
+  color: #e2e8f0 !important; /* Bring up to very light gray (slate-200) */
+  font-weight: 800 !important; /* Force bold labels */
+  font-size: 0.775rem !important; /* Slightly larger labels */
+}
+
+/* Normal values and text */
+.text-slate-300,
+.text-slate-200,
+.text-slate-100 {
+  color: #f9fafb !important; /* Crisp white */
+}
+
+/* Monospace fonts thickness */
+.font-mono {
+  font-weight: 700 !important; /* Extra bold for numbers and dates */
+}
+
+/* Table headers contrast */
+thead tr {
+  background-color: #020617 !important;
+  border-bottom: 2px solid #475569 !important;
+}
+
+thead th {
+  color: #f3f4f6 !important; /* Bright header text */
+  font-weight: 800 !important;
+}
+
+/* Table data contrast */
+tbody tr {
+  border-bottom: 1px solid #1e293b !important;
+}
+
+tbody td {
+  color: #f3f4f6 !important;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+/* Buttons readability */
+button {
+  font-weight: 800 !important;
+}
