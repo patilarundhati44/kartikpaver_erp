@@ -421,7 +421,7 @@ const CreditLedger = () => {
                           <th className="py-4 px-6">Customer Name</th>
                           <th className="py-4 px-6">Items Dispatch List</th>
                           <th className="py-4 px-6 text-right">Total Brass</th>
-                          <th className="py-4 px-6 text-right">Total Bill</th>
+                          <th className="py-4 px-6 text-right">Total Amount</th>
                           <th className="py-4 px-6 text-right">Paid So Far</th>
                           <th className="py-4 px-6 text-right text-red-400">Due Amount</th>
                           <th className="py-4 px-6 text-center">Status</th>

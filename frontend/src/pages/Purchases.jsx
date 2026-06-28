@@ -318,7 +318,7 @@ const Purchases = () => {
                   <th className="py-4 px-6">Date</th>
                   <th className="py-4 px-6">Material Name</th>
                   <th className="py-4 px-6 text-right">Quantity</th>
-                  <th className="py-4 px-6 text-right">Amount Paid</th>
+                  <th className="py-4 px-6 text-right">Total Amount</th>
                   <th className="py-4 px-6">Supplier</th>
                   <th className="py-4 px-6">Notes</th>
                   <th className="py-4 px-6 text-center">Actions</th>
@@ -452,7 +452,7 @@ const Purchases = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 font-mono">
-                    Purchase Amount (INR)*
+                    Total Amount (INR)*
                   </label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">

@@ -492,7 +492,7 @@ const Sales = () => {
                   <th className="py-4 px-6">Customer Name</th>
                   <th className="py-4 px-6">Items Dispatch List</th>
                   <th className="py-4 px-6 text-right">Total Brass</th>
-                  <th className="py-4 px-6 text-right">Total Bill</th>
+                  <th className="py-4 px-6 text-right">Total Amount</th>
                   <th className="py-4 px-6 text-right">Advance Paid</th>
                   <th className="py-4 px-6 text-right text-orange-400">Pending</th>
                   <th className="py-4 px-6 text-center">Actions</th>

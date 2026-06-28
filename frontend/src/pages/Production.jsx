@@ -9,7 +9,9 @@ import {
   AlertTriangle,
   Calendar,
   Hammer,
-  SlidersHorizontal
+  SlidersHorizontal,
+  PlusCircle,
+  MinusCircle
 } from 'lucide-react';
 
 const ProductionPage = () => {
@@ -60,6 +62,7 @@ const ProductionPage = () => {
   const [productionDateDisplay, setProductionDateDisplay] = useState('');
   const [productNameInput, setProductNameInput] = useState('');
   const [quantity, setQuantity] = useState('');
+  const [productionItems, setProductionItems] = useState([]);
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -136,12 +139,9 @@ const ProductionPage = () => {
     setModalType('add');
     const todayStr = new Date().toISOString().split('T')[0];
     setProductionDateDisplay(formatDateToDisplay(todayStr));
-    if (products.length > 0) {
-      setProductNameInput(`${products[0].color} ${products[0].name}`);
-    } else {
-      setProductNameInput('');
-    }
+    setProductNameInput('');
     setQuantity('');
+    setProductionItems([]);
     setError('');
     setShowModal(true);
   };
@@ -156,23 +156,16 @@ const ProductionPage = () => {
     setShowModal(true);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleAddItem = () => {
     setError('');
     setSuccess('');
 
-    // Resolve productId from text input
     const matchedProduct = products.find(
       p => `${p.color} ${p.name}`.toLowerCase() === productNameInput.trim().toLowerCase()
     );
 
-    if (!productionDateDisplay || !productNameInput || !quantity) {
-      setError('Please fill in all required fields.');
-      return;
-    }
-
-    if (!isValidDisplayDate(productionDateDisplay)) {
-      setError('Please enter Date in DD/MM/YYYY format (e.g. 17/06/2026).');
+    if (!productNameInput || !quantity) {
+      setError('Please select a product and enter a quantity.');
       return;
     }
 
@@ -181,19 +174,109 @@ const ProductionPage = () => {
       return;
     }
 
-    const payload = {
-      production_date: parseDisplayToDate(productionDateDisplay),
-      product: matchedProduct.id,
-      quantity: parseInt(quantity)
-    };
+    const qtyVal = parseInt(quantity);
+    if (isNaN(qtyVal) || qtyVal <= 0) {
+      setError('Quantity produced must be greater than zero.');
+      return;
+    }
+
+    const exists = productionItems.some(item => item.productId === matchedProduct.id);
+    if (exists) {
+      setError('This product is already added to the batch list below.');
+      return;
+    }
+
+    setProductionItems([
+      ...productionItems,
+      {
+        productId: matchedProduct.id,
+        productName: matchedProduct.name,
+        productColor: matchedProduct.color,
+        productCategory: matchedProduct.category,
+        quantity: qtyVal
+      }
+    ]);
+
+    setProductNameInput('');
+    setQuantity('');
+  };
+
+  const handleRemoveItem = (index) => {
+    setProductionItems(productionItems.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!productionDateDisplay) {
+      setError('Please enter the production date.');
+      return;
+    }
+
+    if (!isValidDisplayDate(productionDateDisplay)) {
+      setError('Please enter Date in DD/MM/YYYY format (e.g. 17/06/2026).');
+      return;
+    }
+
+    const formattedDate = parseDisplayToDate(productionDateDisplay);
 
     try {
       if (modalType === 'add') {
-        await api.post('productions/', payload);
-        setSuccess('Production entry added successfully!');
+        let itemsToSubmit = [...productionItems];
+
+        if (itemsToSubmit.length === 0) {
+          if (productNameInput && quantity) {
+            const matchedProduct = products.find(
+              p => `${p.color} ${p.name}`.toLowerCase() === productNameInput.trim().toLowerCase()
+            );
+            const qtyVal = parseInt(quantity);
+            if (matchedProduct && qtyVal > 0) {
+              itemsToSubmit.push({
+                productId: matchedProduct.id,
+                productName: matchedProduct.name,
+                productColor: matchedProduct.color,
+                productCategory: matchedProduct.category,
+                quantity: qtyVal
+              });
+            } else {
+              setError('Please click "+ Add" to add the product to the list, or select a valid product & quantity.');
+              return;
+            }
+          } else {
+            setError('Please add at least one product batch to the list.');
+            return;
+          }
+        }
+
+        const promises = itemsToSubmit.map(item =>
+          api.post('productions/', {
+            production_date: formattedDate,
+            product: item.productId,
+            quantity: item.quantity
+          })
+        );
+        await Promise.all(promises);
+        setSuccess('Production batches recorded successfully!');
       } else {
+        const matchedProduct = products.find(
+          p => `${p.color} ${p.name}`.toLowerCase() === productNameInput.trim().toLowerCase()
+        );
+
+        if (!matchedProduct) {
+          setError('Please enter a valid product name.');
+          return;
+        }
+
+        const payload = {
+          production_date: formattedDate,
+          product: matchedProduct.id,
+          quantity: parseInt(quantity)
+        };
+
         await api.put(`productions/${editingId}/`, payload);
-        setSuccess('Production entry updated!');
+        setSuccess('Production entry updated successfully!');
       }
       setShowModal(false);
       fetchProductions();
@@ -311,8 +394,8 @@ const ProductionPage = () => {
         </div>
 
         <div className="bg-slate-950 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-center">
-          <span className="text-[10px] font-bold uppercase text-slate-500 font-mono tracking-wider">Total Blocks Produced</span>
-          <span className="text-lg font-black text-orange-500 mt-1 font-display">{(totalProduced || 0).toLocaleString()} <span className="text-xs text-slate-400 font-medium">pcs</span></span>
+          <span className="text-[10px] font-bold uppercase text-slate-500 font-mono tracking-wider">Total Brass Produced</span>
+          <span className="text-lg font-black text-orange-500 mt-1 font-display">{(totalProduced || 0).toLocaleString()} <span className="text-xs text-slate-400 font-medium">Brass</span></span>
         </div>
 
       </div>
@@ -369,7 +452,7 @@ const ProductionPage = () => {
                       {p.product_category}
                     </td>
                     <td className="py-4 px-6 text-right font-black text-slate-200 font-mono text-sm">
-                      {p.quantity.toLocaleString()} <span className="text-slate-500 text-[10px] font-normal">pcs</span>
+                      {p.quantity.toLocaleString()} <span className="text-slate-500 text-[10px] font-normal">Brass</span>
                     </td>
                     <td className="py-4 px-6">
                       <div className="flex justify-center items-center space-x-2">
@@ -410,8 +493,8 @@ const ProductionPage = () => {
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                            <div>
+            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+              <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 font-mono">
                   Production Date (DD/MM/YYYY)*
                 </label>
@@ -425,40 +508,136 @@ const ProductionPage = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 font-mono">
-                  Select Finished Product*
-                </label>
-                <input
-                  type="text"
-                  list="productListDatalist"
-                  value={productNameInput}
-                  onChange={(e) => setProductNameInput(e.target.value)}
-                  placeholder="Type or select a product..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-orange-500 transition-all"
-                  required
-                />
-                <datalist id="productListDatalist">
-                  {products.map((p) => (
-                    <option key={p.id} value={`${p.color} ${p.name}`} />
-                  ))}
-                </datalist>
-              </div>
+              {modalType === 'add' ? (
+                <>
+                  {/* Product Batch Builder */}
+                  <div className="bg-slate-950/30 border border-slate-800/80 rounded-xl p-4 space-y-3">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">
+                      Add Product to Daily Batch
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 font-mono">
+                          Select Product
+                        </label>
+                        <input
+                          type="text"
+                          list="productListDatalist"
+                          value={productNameInput}
+                          onChange={(e) => setProductNameInput(e.target.value)}
+                          placeholder="Type or select product..."
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-orange-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 font-mono">
+                          Quantity Produced (Brass)
+                        </label>
+                        <div className="flex space-x-2">
+                          <input
+                            type="number"
+                            value={quantity}
+                            onChange={(e) => setQuantity(e.target.value)}
+                            placeholder="Qty in Brass (e.g. 5)"
+                            min="1"
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-orange-500 font-mono"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddItem}
+                            className="bg-slate-800 hover:bg-slate-700 border border-slate-700/85 text-slate-200 hover:text-white px-3.5 rounded-xl text-xs transition-all flex items-center justify-center space-x-1 font-semibold"
+                          >
+                            <PlusCircle size={14} />
+                            <span>Add</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 font-mono">
-                  Quantity Produced (Pieces)*
-                </label>
-                <input
-                  type="number"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  placeholder="e.g. 1000"
-                  min="1"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-orange-500 transition-all font-mono"
-                  required
-                />
-              </div>
+                  {/* Added Items List */}
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">
+                      Batch List to Record
+                    </label>
+                    {productionItems.length === 0 ? (
+                      <div className="text-center py-6 border border-dashed border-slate-800 rounded-xl text-slate-600 text-[11px] font-medium font-mono">
+                        No products added yet. Use the builder above to list products produced.
+                      </div>
+                    ) : (
+                      <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-950/20 max-h-[180px] overflow-y-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="bg-slate-950/40 text-[9px] uppercase tracking-wider text-slate-500 border-b border-slate-800 font-mono">
+                              <th className="py-2.5 px-3">Product Name</th>
+                              <th className="py-2.5 px-3">Color</th>
+                              <th className="py-2.5 px-3 text-right">Quantity</th>
+                              <th className="py-2.5 px-3 text-center">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-800/40 font-mono text-[11px]">
+                            {productionItems.map((item, idx) => (
+                              <tr key={idx} className="hover:bg-slate-950/30">
+                                <td className="py-2 px-3 text-slate-300 font-bold">{item.productName}</td>
+                                <td className="py-2 px-3 text-slate-400">{item.productColor}</td>
+                                <td className="py-2 px-3 text-right font-black text-slate-200">{item.quantity.toLocaleString()} Brass</td>
+                                <td className="py-2 px-3 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveItem(idx)}
+                                    className="text-slate-500 hover:text-red-400 p-1 transition-colors"
+                                  >
+                                    <MinusCircle size={14} />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Edit mode: original fields */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 font-mono">
+                      Select Finished Product*
+                    </label>
+                    <input
+                      type="text"
+                      list="productListDatalist"
+                      value={productNameInput}
+                      onChange={(e) => setProductNameInput(e.target.value)}
+                      placeholder="Type or select a product..."
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-orange-500 transition-all"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 font-mono">
+                      Quantity Produced (Brass)*
+                    </label>
+                    <input
+                      type="number"
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value)}
+                      placeholder="e.g. 5"
+                      min="1"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-orange-500 transition-all font-mono"
+                      required
+                    />
+                  </div>
+                </>
+              )}
+
+              <datalist id="productListDatalist">
+                {products.map((p) => (
+                  <option key={p.id} value={`${p.color} ${p.name}`} />
+                ))}
+              </datalist>
 
               <div className="flex space-x-4 pt-2">
                 <button
@@ -470,12 +649,11 @@ const ProductionPage = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 px-4 rounded-xl text-sm transition-all"
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 px-4 rounded-xl text-sm transition-all shadow-lg shadow-orange-500/10"
                 >
-                  Save Entry
+                  {modalType === 'add' ? 'Record Batch Log' : 'Save Changes'}
                 </button>
               </div>
-
             </form>
           </div>
         </div>
