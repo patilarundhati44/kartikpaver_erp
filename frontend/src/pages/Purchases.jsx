@@ -202,7 +202,7 @@ const Purchases = () => {
   );
 
   // Compute aggregated total purchase cost
-  const totalCost = filteredPurchases.reduce((acc, curr) => acc + parseFloat(curr.purchase_amount), 0);
+  const totalCost = filteredPurchases.reduce((acc, curr) => acc + (parseFloat(curr.quantity) * parseFloat(curr.purchase_amount)), 0);
 
   const formatCurrency = (val) => {
     return new Intl.NumberFormat('en-IN', {
@@ -318,6 +318,7 @@ const Purchases = () => {
                   <th className="py-4 px-6">Date</th>
                   <th className="py-4 px-6">Material Name</th>
                   <th className="py-4 px-6 text-right">Quantity</th>
+                  <th className="py-4 px-6 text-right">Rate/Unit</th>
                   <th className="py-4 px-6 text-right">Total Amount</th>
                   <th className="py-4 px-6">Supplier</th>
                   <th className="py-4 px-6">Notes</th>
@@ -335,11 +336,14 @@ const Purchases = () => {
                         {p.material_name}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-right font-bold font-mono">
+                    <td className="py-4 px-6 text-right font-semibold font-mono">
                       {parseFloat(p.quantity).toLocaleString()} <span className="text-slate-500 text-[10px]">{p.unit}</span>
                     </td>
-                    <td className="py-4 px-6 text-right font-black text-slate-200 font-mono">
+                    <td className="py-4 px-6 text-right font-medium text-slate-300 font-mono">
                       {formatCurrency(p.purchase_amount)}
+                    </td>
+                    <td className="py-4 px-6 text-right font-black text-slate-200 font-mono">
+                      {formatCurrency(parseFloat(p.quantity) * parseFloat(p.purchase_amount))}
                     </td>
                     <td className="py-4 px-6 text-slate-300">
                       {p.supplier_name || <span className="text-slate-600">-</span>}
@@ -452,7 +456,7 @@ const Purchases = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 font-mono">
-                    Total Amount (INR)*
+                    Rate per Unit (INR)*
                   </label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
@@ -463,7 +467,7 @@ const Purchases = () => {
                       step="0.01"
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
-                      placeholder="Total amount"
+                      placeholder="Rate per unit"
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-8 pr-3 text-sm text-slate-100 focus:outline-none focus:border-orange-500 transition-all font-mono"
                       required
                     />
