@@ -26,8 +26,8 @@ class ProductQuerySet(models.QuerySet):
         ).values('total')
 
         return self.annotate(
-            total_produced=Coalesce(Subquery(prod_sub), Value(0, output_field=models.DecimalField()), output_field=models.DecimalField()),
-            total_sold=Coalesce(Subquery(sales_sub), Value(0, output_field=models.DecimalField()), output_field=models.DecimalField())
+            total_produced=Coalesce(Subquery(prod_sub), Value(0, output_field=models.DecimalField(max_digits=12, decimal_places=2)), output_field=models.DecimalField(max_digits=12, decimal_places=2)),
+            total_sold=Coalesce(Subquery(sales_sub), Value(0, output_field=models.DecimalField(max_digits=12, decimal_places=2)), output_field=models.DecimalField(max_digits=12, decimal_places=2))
         ).annotate(
             current_stock=F('total_produced') - F('total_sold')
         )
