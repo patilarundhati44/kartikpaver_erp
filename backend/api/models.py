@@ -100,7 +100,7 @@ class Production(models.Model):
     """
     production_date = models.DateField()
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='productions')
-    quantity = models.IntegerField(help_text="Quantity produced")
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, help_text="Quantity produced (in Brass)")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -152,16 +152,8 @@ class Expense(models.Model):
     """
     Daily factory operating expenses (Labour, Electricity, Maintenance, Diesel, etc.)
     """
-    CATEGORY_CHOICES = [
-        ('Labour', 'Labour'),
-        ('Transportation', 'Transportation'),
-        ('Electricity', 'Electricity'),
-        ('Diesel', 'Diesel'),
-        ('Maintenance', 'Maintenance'),
-        ('Miscellaneous', 'Miscellaneous'),
-    ]
     expense_date = models.DateField()
-    category = models.CharField(max_length=100, choices=CATEGORY_CHOICES)
+    category = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
     amount = models.DecimalField(max_digits=12, decimal_places=2, help_text="Amount spent in INR")
     created_at = models.DateTimeField(auto_now_add=True)

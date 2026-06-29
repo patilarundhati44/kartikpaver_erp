@@ -174,7 +174,7 @@ const ProductionPage = () => {
       return;
     }
 
-    const qtyVal = parseInt(quantity);
+    const qtyVal = parseFloat(quantity);
     if (isNaN(qtyVal) || qtyVal <= 0) {
       setError('Quantity produced must be greater than zero.');
       return;
@@ -231,7 +231,7 @@ const ProductionPage = () => {
             const matchedProduct = products.find(
               p => `${p.color} ${p.name}`.toLowerCase() === productNameInput.trim().toLowerCase()
             );
-            const qtyVal = parseInt(quantity);
+            const qtyVal = parseFloat(quantity);
             if (matchedProduct && qtyVal > 0) {
               itemsToSubmit.push({
                 productId: matchedProduct.id,
@@ -272,7 +272,7 @@ const ProductionPage = () => {
         const payload = {
           production_date: formattedDate,
           product: matchedProduct.id,
-          quantity: parseInt(quantity)
+          quantity: parseFloat(quantity)
         };
 
         await api.put(`productions/${editingId}/`, payload);
@@ -307,7 +307,7 @@ const ProductionPage = () => {
   );
 
   // Compute total blocks produced
-  const totalProduced = filteredProductions.reduce((acc, curr) => acc + parseInt(curr.quantity), 0);
+  const totalProduced = filteredProductions.reduce((acc, curr) => acc + parseFloat(curr.quantity), 0);
 
   return (
     <div className="space-y-6">
@@ -536,10 +536,11 @@ const ProductionPage = () => {
                         <div className="flex space-x-2">
                           <input
                             type="number"
+                            step="0.01"
                             value={quantity}
                             onChange={(e) => setQuantity(e.target.value)}
-                            placeholder="Qty in Brass (e.g. 5)"
-                            min="1"
+                            placeholder="Qty in Brass (e.g. 5.5)"
+                            min="0.1"
                             className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-100 focus:outline-none focus:border-orange-500 font-mono"
                           />
                           <button
@@ -622,10 +623,11 @@ const ProductionPage = () => {
                     </label>
                     <input
                       type="number"
+                      step="0.01"
                       value={quantity}
                       onChange={(e) => setQuantity(e.target.value)}
-                      placeholder="e.g. 5"
-                      min="1"
+                      placeholder="e.g. 5.5"
+                      min="0.1"
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-sm text-slate-100 focus:outline-none focus:border-orange-500 transition-all font-mono"
                       required
                     />
