@@ -11,7 +11,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     # These fields will be populated by the `with_stock` custom queryset annotation
-    current_stock = serializers.IntegerField(read_only=True)
+    current_stock = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     is_low_stock = serializers.BooleanField(read_only=True)
 
     class Meta:
@@ -120,18 +120,18 @@ class SaleSerializer(serializers.ModelSerializer):
         product_quantities = {}
         for item in items_data:
             prod = item.get('product')
-            qty = item.get('quantity')
-            product_quantities[prod] = product_quantities.get(prod, 0) + qty
+            brass = item.get('brass', 0)
+            product_quantities[prod] = product_quantities.get(prod, 0) + brass
 
-        for prod, qty in product_quantities.items():
-            orig_qty = 0
+        for prod, brass in product_quantities.items():
+            orig_brass = 0
             if self.instance:
-                orig_qty = sum(item.quantity for item in self.instance.items.filter(product=prod))
+                orig_brass = sum(item.brass for item in self.instance.items.filter(product=prod))
 
-            current_stock = prod.current_stock_value + orig_qty
-            if qty > current_stock:
+            current_stock = prod.current_stock_value + orig_brass
+            if brass > current_stock:
                 raise serializers.ValidationError({
-                    "items": f"Insufficient stock! Available stock for {prod} is only {current_stock} units. You entered {qty}."
+                    "items": f"Insufficient stock! Available stock for {prod} is only {current_stock} Brass. You entered {brass} Brass."
                 })
 
         return data

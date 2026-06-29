@@ -383,17 +383,17 @@ def reports_module(request):
         end_date = timezone.now().date()
 
     # Query aggregates for specific period
-    period_prod = Production.objects.filter(production_date__gte=start_date, production_date__lte=end_date).aggregate(total=Coalesce(Sum('quantity'), 0))['total']
-    period_sales_qty = SaleItem.objects.filter(sale__sale_date__gte=start_date, sale__sale_date__lte=end_date).aggregate(total=Coalesce(Sum('quantity'), 0))['total']
-    period_sales_amt = Sale.objects.filter(sale_date__gte=start_date, sale_date__lte=end_date).aggregate(total=Coalesce(Sum('sale_amount'), 0.0))['total']
-    period_purchases_amt = RawMaterialPurchase.objects.filter(purchase_date__gte=start_date, purchase_date__lte=end_date).aggregate(total=Coalesce(Sum('purchase_amount'), 0.0))['total']
-    period_expenses_amt = Expense.objects.filter(expense_date__gte=start_date, expense_date__lte=end_date).aggregate(total=Coalesce(Sum('amount'), 0.0))['total']
+    period_prod = Production.objects.filter(production_date__gte=start_date, production_date__lte=end_date).aggregate(total=Sum('quantity'))['total'] or 0
+    period_sales_qty = SaleItem.objects.filter(sale__sale_date__gte=start_date, sale__sale_date__lte=end_date).aggregate(total=Sum('quantity'))['total'] or 0
+    period_sales_amt = Sale.objects.filter(sale_date__gte=start_date, sale_date__lte=end_date).aggregate(total=Sum('sale_amount'))['total'] or 0.0
+    period_purchases_amt = RawMaterialPurchase.objects.filter(purchase_date__gte=start_date, purchase_date__lte=end_date).aggregate(total=Sum('purchase_amount'))['total'] or 0.0
+    period_expenses_amt = Expense.objects.filter(expense_date__gte=start_date, expense_date__lte=end_date).aggregate(total=Sum('amount'))['total'] or 0.0
     
     period_profit = float(period_sales_amt) - (float(period_purchases_amt) + float(period_expenses_amt))
 
     # Current Stock status at end date (approx: total productions up to end_date - total sales up to end_date)
-    prod_up_to_end = Production.objects.filter(production_date__lte=end_date).aggregate(total=Coalesce(Sum('quantity'), 0))['total']
-    sales_up_to_end = SaleItem.objects.filter(sale__sale_date__lte=end_date).aggregate(total=Coalesce(Sum('quantity'), 0))['total']
+    prod_up_to_end = Production.objects.filter(production_date__lte=end_date).aggregate(total=Sum('quantity'))['total'] or 0
+    sales_up_to_end = SaleItem.objects.filter(sale__sale_date__lte=end_date).aggregate(total=Sum('quantity'))['total'] or 0
     stock_at_end_date = prod_up_to_end - sales_up_to_end
 
     # Fetch detailed logs for export/view

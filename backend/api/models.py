@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models import Sum, F, Subquery, OuterRef
 from django.db.models.functions import Coalesce
+from django.db.models import Value
 
 
 class ProductQuerySet(models.QuerySet):
@@ -21,12 +22,12 @@ class ProductQuerySet(models.QuerySet):
         sales_sub = SaleItem.objects.filter(
             product=OuterRef('pk')
         ).values('product').annotate(
-            total=Sum('quantity')
+            total=Sum('brass')
         ).values('total')
 
         return self.annotate(
-            total_produced=Coalesce(Subquery(prod_sub), 0),
-            total_sold=Coalesce(Subquery(sales_sub), 0)
+            total_produced=Coalesce(Subquery(prod_sub), Value(0, output_field=models.DecimalField()), output_field=models.DecimalField()),
+            total_sold=Coalesce(Subquery(sales_sub), Value(0, output_field=models.DecimalField()), output_field=models.DecimalField())
         ).annotate(
             current_stock=F('total_produced') - F('total_sold')
         )
@@ -65,8 +66,8 @@ class Product(models.Model):
     @property
     def current_stock_value(self):
         """Dynamic single-object stock calculation."""
-        produced = Production.objects.filter(product=self).aggregate(total=Coalesce(Sum('quantity'), 0))['total']
-        sold = SaleItem.objects.filter(product=self).aggregate(total=Coalesce(Sum('quantity'), 0))['total']
+        produced = Production.objects.filter(product=self).aggregate(total=Sum('quantity'))['total'] or 0
+        sold = SaleItem.objects.filter(product=self).aggregate(total=Sum('brass'))['total'] or 0
         return produced - sold
 
     @property
