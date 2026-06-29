@@ -65,7 +65,7 @@ const Dashboard = () => {
   const stats = [
     {
       title: 'Total Available Stock',
-      value: `${(data?.total_available_stock || 0).toLocaleString()} units`,
+      value: `${parseFloat(data?.total_available_stock || 0).toLocaleString()} units`,
       description: 'Sum of all colors & types',
       icon: Layers,
       color: 'text-blue-500',
@@ -74,8 +74,8 @@ const Dashboard = () => {
     },
     {
       title: "Today's Production",
-      value: `${(data?.today?.production || 0).toLocaleString()} blocks`,
-      description: `MTD: ${(data?.monthly?.production || 0).toLocaleString()}`,
+      value: `${parseFloat(data?.today?.production || 0).toLocaleString()} blocks`,
+      description: `MTD: ${parseFloat(data?.monthly?.production || 0).toLocaleString()}`,
       icon: Hammer,
       color: 'text-orange-500',
       bg: 'bg-orange-950/20 border-orange-900/40',
@@ -208,8 +208,8 @@ const Dashboard = () => {
                         </span>
                       </td>
                       <td className="py-3 text-slate-400">{alert.category}</td>
-                      <td className="py-3 text-right font-black text-orange-400">{alert.current_stock.toLocaleString()}</td>
-                      <td className="py-3 text-right text-slate-500">{alert.threshold.toLocaleString()}</td>
+                      <td className="py-3 text-right font-black text-orange-400">{parseFloat(alert.current_stock || 0).toLocaleString()}</td>
+                      <td className="py-3 text-right text-slate-500">{parseFloat(alert.threshold || 0).toLocaleString()}</td>
                       <td className="py-3">
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-950/20 text-red-400 border border-red-900/30">
                           Low Stock

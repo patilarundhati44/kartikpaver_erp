@@ -444,7 +444,7 @@ const CreditLedger = () => {
                                 <div className="space-y-1 py-0.5">
                                   {s.items && s.items.map((item, idx) => (
                                     <div key={idx} className="flex items-center space-x-1.5 text-slate-300 text-xs">
-                                      <span className="font-bold text-slate-200">{item.quantity.toLocaleString()}</span>
+                                      <span className="font-bold text-slate-200">{parseFloat(item.quantity || 0).toLocaleString()}</span>
                                       <span className="text-slate-500 font-normal">pcs</span>
                                       <span className="text-slate-400 font-medium">{item.product_color} {item.product_name}</span>
                                       {parseFloat(item.brass) > 0 && (

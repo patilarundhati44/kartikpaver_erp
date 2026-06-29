@@ -452,7 +452,7 @@ const ProductionPage = () => {
                       {p.product_category}
                     </td>
                     <td className="py-4 px-6 text-right font-black text-slate-200 font-mono text-sm">
-                      {p.quantity.toLocaleString()} <span className="text-slate-500 text-[10px] font-normal">Brass</span>
+                      {parseFloat(p.quantity || 0).toLocaleString()} <span className="text-slate-500 text-[10px] font-normal">Brass</span>
                     </td>
                     <td className="py-4 px-6">
                       <div className="flex justify-center items-center space-x-2">
@@ -581,7 +581,7 @@ const ProductionPage = () => {
                               <tr key={idx} className="hover:bg-slate-950/30">
                                 <td className="py-2 px-3 text-slate-300 font-bold">{item.productName}</td>
                                 <td className="py-2 px-3 text-slate-400">{item.productColor}</td>
-                                <td className="py-2 px-3 text-right font-black text-slate-200">{item.quantity.toLocaleString()} Brass</td>
+                                <td className="py-2 px-3 text-right font-black text-slate-200">{parseFloat(item.quantity || 0).toLocaleString()} Brass</td>
                                 <td className="py-2 px-3 text-center">
                                   <button
                                     type="button"

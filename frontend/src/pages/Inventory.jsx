@@ -45,7 +45,7 @@ const Inventory = () => {
     if (!productGroupMap[p.name]) {
       productGroupMap[p.name] = { name: p.name, category: p.category, stock: 0 };
     }
-    productGroupMap[p.name].stock += p.current_stock || 0;
+    productGroupMap[p.name].stock += parseFloat(p.current_stock || 0);
   });
   const productGroups = Object.values(productGroupMap);
 
@@ -55,13 +55,13 @@ const Inventory = () => {
     if (!colorGroupMap[p.color]) {
       colorGroupMap[p.color] = { color: p.color, stock: 0 };
     }
-    colorGroupMap[p.color].stock += p.current_stock || 0;
+    colorGroupMap[p.color].stock += parseFloat(p.current_stock || 0);
   });
   const colorGroups = Object.values(colorGroupMap);
 
   // General Totals
-  const totalStock = products.reduce((acc, curr) => acc + (curr.current_stock || 0), 0);
-  const lowStockCount = products.filter(p => p.current_stock < p.low_stock_threshold).length;
+  const totalStock = products.reduce((acc, curr) => acc + parseFloat(curr.current_stock || 0), 0);
+  const lowStockCount = products.filter(p => parseFloat(p.current_stock || 0) < parseFloat(p.low_stock_threshold || 0)).length;
 
   return (
     <div className="space-y-8">
@@ -217,7 +217,7 @@ const Inventory = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 text-xs">
                     {filteredProducts.map((p) => {
-                      const isLow = p.current_stock < p.low_stock_threshold;
+                      const isLow = parseFloat(p.current_stock || 0) < parseFloat(p.low_stock_threshold || 0);
                       return (
                         <tr key={p.id} className="hover:bg-slate-950/20 transition-colors">
                           <td className="py-4 px-6 font-bold text-slate-200">{p.name}</td>
@@ -235,10 +235,10 @@ const Inventory = () => {
                           <td className="py-4 px-6 text-slate-500 font-mono text-[10px]">{p.category}</td>
                           <td className="py-4 px-6 text-right font-black font-mono text-sm">
                             <span className={isLow ? 'text-red-500' : 'text-green-500'}>
-                              {p.current_stock?.toLocaleString()}
+                              {parseFloat(p.current_stock || 0).toLocaleString()}
                             </span>
                           </td>
-                          <td className="py-4 px-6 text-right text-slate-500 font-mono">{p.low_stock_threshold.toLocaleString()}</td>
+                          <td className="py-4 px-6 text-right text-slate-500 font-mono">{parseFloat(p.low_stock_threshold || 0).toLocaleString()}</td>
                           <td className="py-4 px-6 text-center">
                             {isLow ? (
                               <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-red-950/30 text-red-400 border border-red-900/40 uppercase tracking-wide">

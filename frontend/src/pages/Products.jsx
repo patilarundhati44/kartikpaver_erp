@@ -232,11 +232,11 @@ const Products = () => {
                       </td>
                       <td className="py-4 px-6 text-right font-mono">
                         <span className={`font-black ${isLow ? 'text-orange-500' : 'text-slate-300'}`}>
-                          {p.current_stock?.toLocaleString() || 0}
+                          {parseFloat(p.current_stock || 0).toLocaleString()}
                         </span>
                       </td>
                       <td className="py-4 px-6 text-right font-mono text-slate-500">
-                        {p.low_stock_threshold?.toLocaleString()}
+                        {parseFloat(p.low_stock_threshold || 0).toLocaleString()}
                       </td>
                       <td className="py-4 px-6">
                         <div className="flex justify-center items-center space-x-2">

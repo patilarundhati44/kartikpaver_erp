@@ -196,7 +196,7 @@ const Reports = () => {
         <div className="grid grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-200 text-xs">
           <div>
             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Total Production</span>
-            <span className="text-base font-black text-slate-800">{(data?.totals?.production || 0).toLocaleString()} blocks</span>
+            <span className="text-base font-black text-slate-800">{parseFloat(data?.totals?.production || 0).toLocaleString()} blocks</span>
           </div>
           <div>
             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Sales Revenue</span>
@@ -233,7 +233,7 @@ const Reports = () => {
               <div className="p-2.5 bg-orange-950/40 rounded-xl text-orange-500"><Hammer size={18} /></div>
               <div>
                 <span className="text-[10px] text-slate-500 uppercase font-mono block">Production</span>
-                <span className="text-sm font-bold text-slate-200 font-mono">{(data.totals.production).toLocaleString()} pcs</span>
+                <span className="text-sm font-bold text-slate-200 font-mono">{parseFloat(data?.totals?.production || 0).toLocaleString()} pcs</span>
               </div>
             </div>
 
@@ -306,7 +306,7 @@ const Reports = () => {
                       <td className="py-3 px-6 font-bold text-slate-300 print:text-black">{p.product_name}</td>
                       <td className="py-3 px-6 print:text-black">{p.product_color}</td>
                       <td className="py-3 px-6 text-slate-500 print:text-slate-600 font-mono text-[10px]">{p.product_category}</td>
-                      <td className="py-3 px-6 text-right font-black font-mono text-slate-300 print:text-black">{p.quantity.toLocaleString()} pcs</td>
+                      <td className="py-3 px-6 text-right font-black font-mono text-slate-300 print:text-black">{parseFloat(p.quantity || 0).toLocaleString()} pcs</td>
                     </tr>
                   ))}
                   {data.production.length === 0 && (
@@ -332,7 +332,7 @@ const Reports = () => {
                     <tr key={idx} className="hover:bg-slate-950/10 print:text-black">
                       <td className="py-3 px-6 font-mono font-semibold print:text-black">{new Date(s.sale_date).toLocaleDateString('en-GB')}</td>
                       <td className="py-3 px-6 font-bold text-slate-300 print:text-black">{s.product_color} {s.product_name}</td>
-                      <td className="py-3 px-6 text-right font-mono print:text-black">{s.quantity.toLocaleString()}</td>
+                      <td className="py-3 px-6 text-right font-mono print:text-black">{parseFloat(s.quantity || 0).toLocaleString()}</td>
                       <td className="py-3 px-6 text-right font-black font-mono text-slate-300 print:text-black">{formatCurrency(s.sale_amount)}</td>
                       <td className="py-3 px-6 text-slate-400 print:text-black">{s.customer_name || 'Walk-in'}</td>
                     </tr>

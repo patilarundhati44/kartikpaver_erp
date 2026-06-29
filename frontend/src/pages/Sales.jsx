@@ -163,7 +163,7 @@ const Sales = () => {
         }
       }
 
-      const stockLimit = (matchedProduct.current_stock || 0) + originalQty - alreadyAddedQty;
+      const stockLimit = parseFloat(matchedProduct.current_stock || 0) + originalQty - alreadyAddedQty;
       setBuilderProductStock(stockLimit >= 0 ? stockLimit : 0);
     } else {
       setBuilderProductStock(0);
@@ -528,7 +528,7 @@ const Sales = () => {
                       <div className="space-y-1.5 py-1">
                         {s.items && s.items.map((item, idx) => (
                           <div key={idx} className="flex items-center space-x-1.5 text-slate-300 text-xs">
-                            <span className="font-black text-slate-200">{item.quantity.toLocaleString()}</span>
+                            <span className="font-black text-slate-200">{parseFloat(item.quantity || 0).toLocaleString()}</span>
                             <span className="text-slate-500 font-normal">pcs</span>
                             <span className="text-slate-400 font-medium">{item.product_color} {item.product_name}</span>
                             {parseFloat(item.brass) > 0 && (
@@ -807,7 +807,7 @@ const Sales = () => {
                               </div>
                             </td>
                             <td className="py-2.5 px-4 text-right font-mono font-bold text-slate-300">
-                              {item.quantity.toLocaleString()}
+                              {parseFloat(item.quantity || 0).toLocaleString()}
                             </td>
                             <td className="py-2.5 px-4 text-right font-mono text-slate-400">
                               {item.brass > 0 ? `${item.brass} Br` : '-'}
